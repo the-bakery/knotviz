@@ -1,0 +1,154 @@
+
+module Main where
+
+import Control.Monad
+import Data.IORef
+import Graphics.UI.GLUT
+import System.Exit
+
+import VQM
+import Knot
+
+main :: IO ()
+main = do
+  (name, args) <- getArgsAndInitialize
+  when (args==[]) $ do
+         printHelp name
+         exitFailure
+  initialWindowSize $= Size 800 600
+  initialDisplayMode $= [RGBMode, DoubleBuffered, WithDepthBuffer]
+  createWindow "knotty"
+  state <- makeState args
+  displayCallback $= displayAction state
+  reshapeCallback $= Just (reshapeAction state)
+  keyboardMouseCallback $= Just (keyboardMouseAction state)
+  passiveMotionCallback $= Just (passiveMotionAction state)
+  motionCallback $= Just (activeMotionAction state)
+  depthFunc $= Just Less
+  mainLoop
+
+data State = State {
+      prevPtrPos :: IORef Position,
+      orientation :: IORef (Quat GLdouble)
+    }
+
+makeState :: [String] -> IO State
+makeState args = do
+  i_ori <- newIORef (Quat 1.0 (Vec3 0.0 0.0 0.0))
+  i_pos <- newIORef (Position 0 0)
+  return $ State {
+               orientation = i_ori,
+               prevPtrPos = i_pos
+             }
+
+vertices :: (VertexComponent s) => [Vec3 s] -> IO ()
+vertices vs = mapM_ ( \(Vec3 x y z) -> vertex (Vertex3 x y z) ) vs
+
+cube p =
+    let m = -p
+    in vertices
+           [Vec3 p p p, Vec3 p p m, Vec3 p m m, Vec3 p m p,
+            Vec3 p p p, Vec3 p p m, Vec3 m p m, Vec3 m p p,
+            Vec3 p p p, Vec3 p m p, Vec3 m m p, Vec3 m p p,
+            Vec3 m p p, Vec3 m p m, Vec3 m m m, Vec3 m m p,
+            Vec3 p m p, Vec3 p m m, Vec3 m m m, Vec3 m m p,
+            Vec3 p p m, Vec3 p m m, Vec3 m m m, Vec3 m p m]
+
+knot = vertices (sampleCurve 1000 $ torusKnot 3 5 :: [Vec3 GLdouble])
+
+displayAction :: State -> DisplayCallback
+displayAction state = do
+  clearColor $= Color4 0.0 0.0 0.0 1.0
+  clearDepth $= 1.0
+  clear [ColorBuffer, DepthBuffer]
+  matrixMode $= (Modelview 0)
+  loadIdentity
+  ori <- get (orientation state)
+  let (M3x3 (Vec3 ix iy iz) (Vec3 jx jy jz) (Vec3 kx ky kz)) = qToM3x3 ori
+  rot <- (newMatrix ColumnMajor [ix, iy, iz, 0.0,
+                                 jx, jy, jz, 0.0,
+                                 kx, ky, kz, 0.0,
+                                 0.0, 0.0, 0.0, 1.0]) :: IO (GLmatrix GLdouble)
+  translate (Vector3 0.0 0.0 (-4.0) :: Vector3 GLdouble)
+  multMatrix rot
+  polygonMode $= (Line, Line)
+  -- renderPrimitive Quads $ cube (1.0 :: GLdouble)
+  renderPrimitive LineStrip $ knot
+  flush
+  swapBuffers
+
+keyboardMouseAction :: State -> KeyboardMouseCallback
+keyboardMouseAction state key keyState mods _ = do
+  postRedisplay Nothing
+  case (key, keyState) of
+    --(MouseButton LeftButton, Down) -> stuff
+    --(MouseButton LeftButton, Up) -> stuff
+    --(SpecialKey KeyF5, Down) -> loadFunction state
+    (_, _) -> return ()
+
+passiveMotionAction :: State -> MotionCallback
+passiveMotionAction state pos = do
+  prevPtrPos state $= pos
+
+activeMotionAction :: State -> MotionCallback
+activeMotionAction state pos@(Position x y) = do
+  postRedisplay Nothing
+  Position px py <- get (prevPtrPos state)
+  prevPtrPos state $= pos
+  let d = Vec3 (fromIntegral (py - y)) (fromIntegral (x - px)) 0.0
+  ori <- get (orientation state)
+  let Just ori' = qUnit (qMul (vToQuat (vScale 0.002 d)) ori)
+  orientation state $= ori'
+
+{-
+timerAction :: State -> TimerCallback
+timerAction state = do
+   rot <- get (shouldRotate state)
+   when rot $ do
+      ia <- get (inertia state)
+      diff state $~ ($+ ia)
+      postRedisplay Nothing
+   addTimerCallback timerFrequencyMillis (timer state)
+-}
+
+reshapeAction :: State -> ReshapeCallback
+reshapeAction state size@(Size w h) = do
+  viewport $= (Position 0 0, size)
+  -- plotSize state $= Vector2 (fromIntegral w) (fromIntegral h)
+  matrixMode $= Projection
+  loadIdentity
+  let a = (fromIntegral w) / (fromIntegral h)
+  let f = 0.001
+  frustum (-a * f) (a * f) f (-f) f 100.0
+
+printHelp :: String -> IO ()
+printHelp name = mapM_ putStrLn [
+  "Usage:",
+  "",
+  "  " ++ name ++ " [OPTIONS] INPUT",
+  "",
+  "Options:",
+  "",
+  "  -display DISPLAY",
+  "    Specify the X server to connect to. If not specified,",
+  "    the value of the DISPLAY environment variable is used.",
+  "",
+  "  -geometry WxH+X+Y",
+  "    Determines where the window should be created on the screen.",
+  "    The parameter should be formatted as a standard X geometry specification.",
+  "",
+  "  -iconic",
+  "    Start minimized.",
+  "",
+  "  -indirect",
+  "    Force indirect OpenGL rendering contexts.",
+  "",
+  "  -direct",
+  "    Force direct OpenGL rendering contexts.",
+  "",
+  "  -gldebug",
+  "    Helpful in detecting OpenGL run-time errors.",
+  "",
+  "  -sync",
+  "    Enable synchronous X protocol transactions.",
+  ""]
