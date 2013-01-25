@@ -2,7 +2,9 @@
 module Main where
 
 import Control.Monad
+import Data.Array.IArray
 import Data.IORef
+import Data.Ix
 import Graphics.UI.GLUT
 import System.Exit
 
@@ -17,7 +19,7 @@ main = do
          exitFailure
   initialWindowSize $= Size 800 600
   initialDisplayMode $= [RGBMode, DoubleBuffered, WithDepthBuffer]
-  createWindow "knotty"
+  createWindow "knotviz"
   state <- makeState args
   displayCallback $= displayAction state
   reshapeCallback $= Just (reshapeAction state)
@@ -29,32 +31,39 @@ main = do
 
 data State = State {
       prevPtrPos :: IORef Position,
-      orientation :: IORef (Quat GLdouble)
+      orientation :: IORef (Quat GLdouble),
+      leftButton :: IORef Bool
     }
 
 makeState :: [String] -> IO State
 makeState args = do
   i_ori <- newIORef (Quat 1.0 (Vec3 0.0 0.0 0.0))
   i_pos <- newIORef (Position 0 0)
+  i_ltb <- newIORef False
   return $ State {
                orientation = i_ori,
-               prevPtrPos = i_pos
+               prevPtrPos = i_pos,
+               leftButton = i_ltb
              }
 
 vertices :: (VertexComponent s) => [Vec3 s] -> IO ()
 vertices vs = mapM_ ( \(Vec3 x y z) -> vertex (Vertex3 x y z) ) vs
 
-cube p =
-    let m = -p
-    in vertices
-           [Vec3 p p p, Vec3 p p m, Vec3 p m m, Vec3 p m p,
-            Vec3 p p p, Vec3 p p m, Vec3 m p m, Vec3 m p p,
-            Vec3 p p p, Vec3 p m p, Vec3 m m p, Vec3 m p p,
-            Vec3 m p p, Vec3 m p m, Vec3 m m m, Vec3 m m p,
-            Vec3 p m p, Vec3 p m m, Vec3 m m m, Vec3 m m p,
-            Vec3 p p m, Vec3 p m m, Vec3 m m m, Vec3 m p m]
+renderPolyLine :: PolyLine GLdouble -> IO ()
+renderPolyLine vs = do
+  renderPrimitive LineStrip $ vertices $ elems vs
 
-knot = vertices (sampleCurve 1000 $ torusKnot 3 5 :: [Vec3 GLdouble])
+renderPolyQuad :: PolyQuad GLdouble -> IO ()
+renderPolyQuad vs = do
+  let ((0,0),(n,m)) = bounds vs
+  renderPrimitive Quads $ vertices $ map (vs !) $
+    concat $ [[(i,j),(i+1,j),(i+1,j+1),(i,j+1)] | (i,j) <- range ((0,0),(n-1,m-1))]
+
+curve :: PolyLine GLdouble
+curve = sampleCurve 1024 $ torusCurve 3 5
+
+patch :: PolyQuad GLdouble
+patch = samplePatch 32 32 $ torusPatch 2.0 1.0
 
 displayAction :: State -> DisplayCallback
 displayAction state = do
@@ -72,8 +81,8 @@ displayAction state = do
   translate (Vector3 0.0 0.0 (-4.0) :: Vector3 GLdouble)
   multMatrix rot
   polygonMode $= (Line, Line)
-  -- renderPrimitive Quads $ cube (1.0 :: GLdouble)
-  renderPrimitive LineStrip $ knot
+  --renderPolyLine curve
+  renderPolyQuad patch
   flush
   swapBuffers
 
@@ -81,8 +90,8 @@ keyboardMouseAction :: State -> KeyboardMouseCallback
 keyboardMouseAction state key keyState mods _ = do
   postRedisplay Nothing
   case (key, keyState) of
-    --(MouseButton LeftButton, Down) -> stuff
-    --(MouseButton LeftButton, Up) -> stuff
+    (MouseButton LeftButton, Down) -> leftButton state $= True
+    (MouseButton LeftButton, Up) ->  leftButton state $= False
     --(SpecialKey KeyF5, Down) -> loadFunction state
     (_, _) -> return ()
 
@@ -92,13 +101,15 @@ passiveMotionAction state pos = do
 
 activeMotionAction :: State -> MotionCallback
 activeMotionAction state pos@(Position x y) = do
-  postRedisplay Nothing
-  Position px py <- get (prevPtrPos state)
+  ltb <- get (leftButton state)
+  when ltb $ do
+    postRedisplay Nothing
+    Position px py <- get (prevPtrPos state)
+    let d = Vec3 (fromIntegral (py - y)) (fromIntegral (x - px)) 0.0
+    ori <- get (orientation state)
+    let Just ori' = qUnit (qMul (vToQuat (vScale 0.002 d)) ori)
+    orientation state $= ori'
   prevPtrPos state $= pos
-  let d = Vec3 (fromIntegral (py - y)) (fromIntegral (x - px)) 0.0
-  ori <- get (orientation state)
-  let Just ori' = qUnit (qMul (vToQuat (vScale 0.002 d)) ori)
-  orientation state $= ori'
 
 {-
 timerAction :: State -> TimerCallback
