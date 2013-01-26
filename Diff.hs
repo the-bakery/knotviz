@@ -3,6 +3,15 @@ module Diff where
 
 data Dual a = Join a (Dual a)
 
+diffF :: (Functor f) => f (Dual a) -> f (Dual a)
+diffF = fmap diff
+
+primalF :: (Functor f) => f (Dual a) -> f a
+primalF = fmap primal
+
+dualF :: (Functor f, Num a) => f a -> f (Dual a)
+dualF = fmap dual
+
 diff :: Dual a -> Dual a
 diff (Join _ t) = t
 
@@ -12,14 +21,17 @@ primal (Join v _) = v
 integrate :: a -> Dual a -> Dual a
 integrate = Join
 
-zero :: (Num a) => Dual a
-zero = Join (fromInteger 0) zero
-
-one :: (Num a) => Dual a
-one = Join (fromInteger 1) zero
-
 dual :: (Num a) => a -> Dual a
 dual x = integrate x one
+
+zero :: (Num a) => Dual a
+zero = integrate (fromInteger 0) zero
+
+lift :: (Num a) => a -> Dual a
+lift x = integrate x zero
+
+one :: (Num a) => Dual a
+one = integrate (fromInteger 1) zero
 
 instance (Eq a) => Eq (Dual a) where
     x == y  =  primal x == primal y

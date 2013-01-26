@@ -3,24 +3,51 @@ module Knot where
 
 import Data.Array.IArray
 
+import Diff
 import VQM
 
 type Curve s = s -> Vec3 s
 type Patch s = s -> s -> Vec3 s
 
-type PolyLine s = Array Integer (Vec3 s)
-type PolyQuad s = Array (Integer, Integer) (Vec3 s)
+type CurveVert s = (Vec3 s, s)
+type PatchVert s = (Vec3 s, Vec3 s, s, s)
+
+type PolyLine s = Array Integer (CurveVert s)
+type PolyQuad s = Array (Integer, Integer) (PatchVert s)
+
+normalF :: (Fractional s) => Patch (Dual s) -> Patch s
+normalF patch t u =
+    let dfdt = primalF $ diffF $ patch (dual t) (lift u)
+        dfdu = primalF $ diffF $ patch (lift t) (dual u)
+    in vCross dfdu dfdt
 
 sampleUnit :: (Fractional s) => Integer -> [s]
 sampleUnit n = [fromInteger i / fromInteger n | i <- [0..n]]
 
-sampleCurve :: (Fractional s) => Integer -> Curve s -> PolyLine s
+sampleCurve :: (Fractional s) => Integer -> Curve (Dual s) -> PolyLine s
 sampleCurve n curve =
-    listArray (0,n) [curve t | t <- sampleUnit n]
+    listArray (0,n) [evalCurve curve t | t <- sampleUnit n]
 
-samplePatch :: (Fractional s) => Integer -> Integer -> Patch s -> PolyQuad s
+samplePatch :: (Fractional s) => Integer -> Integer -> Patch (Dual s) -> PolyQuad s
 samplePatch n m patch =
-    listArray ((0,0),(n,m)) [patch t u | t <- sampleUnit n, u <- sampleUnit m]
+    listArray ((0,0),(n,m)) [evalPatch patch t u
+                                 | t <- sampleUnit n, u <- sampleUnit m]
+
+evalCurve :: (Fractional s) => Curve (Dual s) -> s -> CurveVert s
+evalCurve curve t =
+    let pos = primalF $ curve (dual t)
+    in (pos, t)
+
+evalPatch :: (Fractional s) => Patch (Dual s) -> s -> s -> PatchVert s
+evalPatch patch t u =
+    let pos = primalF $ patch (dual t) (dual u)
+        nrm = normalF patch t u
+    in (pos, nrm, t, u)
+
+ringCurve :: (Floating s) => s -> Curve s
+ringCurve r t =
+    let t' = 2 * pi * t
+    in vScale r (Vec3 (cos t') (sin t') 0)
 
 torusPatch :: (Floating s) => s -> s -> Patch s
 torusPatch r1 r2 t u =

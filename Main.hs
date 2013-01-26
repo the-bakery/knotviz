@@ -46,24 +46,32 @@ makeState args = do
                leftButton = i_ltb
              }
 
-vertices :: (VertexComponent s) => [Vec3 s] -> IO ()
-vertices vs = mapM_ ( \(Vec3 x y z) -> vertex (Vertex3 x y z) ) vs
+glCurveVert :: (VertexComponent s, TexCoordComponent s) => CurveVert s -> IO ()
+glCurveVert (Vec3 x y z, t) = do
+  texCoord (TexCoord1 t)
+  vertex (Vertex3 x y z)
+
+glPatchVert :: (VertexComponent s, NormalComponent s, TexCoordComponent s) => PatchVert s -> IO ()
+glPatchVert (Vec3 x y z, Vec3 nx ny nz, t, u) = do
+  texCoord (TexCoord2 t u)
+  normal (Normal3 nx ny nz)
+  vertex (Vertex3 x y z)
 
 renderPolyLine :: PolyLine GLdouble -> IO ()
 renderPolyLine vs = do
-  renderPrimitive LineStrip $ vertices $ elems vs
+  renderPrimitive LineStrip $ mapM_ glCurveVert $ elems vs
 
 renderPolyQuad :: PolyQuad GLdouble -> IO ()
 renderPolyQuad vs = do
   let ((0,0),(n,m)) = bounds vs
-  renderPrimitive Quads $ vertices $ map (vs !) $
-    concat $ [[(i,j),(i+1,j),(i+1,j+1),(i,j+1)] | (i,j) <- range ((0,0),(n-1,m-1))]
+  renderPrimitive Quads $ mapM_ glPatchVert $ map (vs !) $ concat $
+    [[(i,j),(i+1,j),(i+1,j+1),(i,j+1)] | (i,j) <- range ((0,0),(n-1,m-1))]
 
 curve :: PolyLine GLdouble
 curve = sampleCurve 1024 $ torusCurve 3 5
 
 patch :: PolyQuad GLdouble
-patch = samplePatch 32 32 $ torusPatch 2.0 1.0
+patch = samplePatch 64 32 $ torusPatch 2.0 0.8
 
 displayAction :: State -> DisplayCallback
 displayAction state = do
@@ -72,6 +80,14 @@ displayAction state = do
   clear [ColorBuffer, DepthBuffer]
   matrixMode $= (Modelview 0)
   loadIdentity
+
+  shadeModel $= Smooth
+  normalize $= Enabled
+  ambient (Light 0) $= Color4 0.1 0.1 0.1 1.0
+  diffuse (Light 0) $= Color4 0.9 0.9 0.9 1.0
+  position (Light 0) $= Vertex4 0.5 (-1.0) 0.5 0.0
+  light (Light 0) $= Enabled
+
   ori <- get (orientation state)
   let (M3x3 (Vec3 ix iy iz) (Vec3 jx jy jz) (Vec3 kx ky kz)) = qToM3x3 ori
   rot <- (newMatrix ColumnMajor [ix, iy, iz, 0.0,
@@ -80,9 +96,14 @@ displayAction state = do
                                  0.0, 0.0, 0.0, 1.0]) :: IO (GLmatrix GLdouble)
   translate (Vector3 0.0 0.0 (-4.0) :: Vector3 GLdouble)
   multMatrix rot
-  polygonMode $= (Line, Line)
-  --renderPolyLine curve
+
+  lighting $= Disabled
+  renderPolyLine curve
+
+  lighting $= Enabled
+  polygonMode $= (Fill, Fill)
   renderPolyQuad patch
+
   flush
   swapBuffers
 
