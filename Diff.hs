@@ -1,5 +1,10 @@
 
-module Diff where
+module Diff (Dual,
+             dual, dualF,
+             primal, primalF,
+             diff, diffF,
+             lift, liftF
+            ) where
 
 data Dual a = Join a (Dual a)
 
@@ -11,6 +16,9 @@ primalF = fmap primal
 
 dualF :: (Functor f, Num a) => f a -> f (Dual a)
 dualF = fmap dual
+
+liftF :: (Functor f, Num a) => f a -> f (Dual a)
+liftF = fmap lift
 
 diff :: Dual a -> Dual a
 diff (Join _ t) = t
