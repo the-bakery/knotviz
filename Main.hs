@@ -14,9 +14,11 @@ import Knot
 main :: IO ()
 main = do
   (name, args) <- getArgsAndInitialize
+  {-
   when (args==[]) $ do
          printHelp name
          exitFailure
+  -}
   initialWindowSize $= Size 800 600
   initialDisplayMode $= [RGBMode, DoubleBuffered, WithDepthBuffer]
   createWindow "knotviz"
@@ -71,7 +73,8 @@ curve :: PolyLine GLdouble
 curve = sampleCurve 1024 $ torusCurve 3 5
 
 patch :: PolyQuad GLdouble
-patch = samplePatch 64 32 $ torusPatch 2.0 0.8
+--patch = samplePatch 64 32 $ torusPatch 2.0 0.8
+patch = samplePatch 256 16 $ curveTubePatch (torusCurve 3 5) 0.5
 
 displayAction :: State -> DisplayCallback
 displayAction state = do
@@ -100,8 +103,9 @@ displayAction state = do
   lighting $= Disabled
   renderPolyLine curve
 
-  lighting $= Enabled
-  polygonMode $= (Fill, Fill)
+  --lighting $= Enabled
+  --polygonMode $= (Fill, Fill)
+  polygonMode $= (Line, Line)
   renderPolyQuad patch
 
   flush

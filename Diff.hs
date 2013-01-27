@@ -3,6 +3,8 @@ module Diff (Dual,
              dual, dualF,
              primal, primalF,
              diff, diffF,
+             diffs, diffsF,
+             diffs0, diffs0F,
              lift, liftF
             ) where
 
@@ -10,6 +12,12 @@ data Dual a = Join a (Dual a)
 
 diffF :: (Functor f) => f (Dual a) -> f (Dual a)
 diffF = fmap diff
+
+diffsF :: (Functor f) => f (Dual a) -> [f (Dual a)]
+diffsF = tail . diffs0F
+
+diffs0F :: (Functor f) => f (Dual a) -> [f (Dual a)]
+diffs0F x = x : diffs0F (diffF x)
 
 primalF :: (Functor f) => f (Dual a) -> f a
 primalF = fmap primal
@@ -22,6 +30,12 @@ liftF = fmap lift
 
 diff :: Dual a -> Dual a
 diff (Join _ t) = t
+
+diffs0 :: Dual a -> [Dual a]
+diffs0 x = x : diffs0 (diff x)
+
+diffs :: Dual a -> [Dual a]
+diffs = tail . diffs0
 
 primal :: Dual a -> a
 primal (Join v _) = v

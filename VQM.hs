@@ -70,6 +70,12 @@ vUnit v =
       Nothing -> Nothing
       Just (_, u) -> Just u
 
+vUnit0 :: (Eq s, Floating s) => Vec3 s -> Vec3 s
+vUnit0 v =
+    case vUnit v of
+      Nothing -> Vec3 zero zero zero
+      Just u -> u
+
 vToQuat :: (Eq s, Floating s) => Vec3 s -> Quat s
 vToQuat v =
     case (vNormUnit v) of
@@ -113,6 +119,12 @@ qUnit q =
     case (qNormUnit q) of
       Nothing -> Nothing
       Just (_, u) -> Just u
+
+qUnit0 :: (Eq s, Floating s) => Quat s -> Quat s
+qUnit0 q =
+    case qUnit q of
+      Nothing -> Quat zero (Vec3 zero zero zero)
+      Just u -> u
 
 qInv :: (Eq s, Fractional s) => Quat s -> Maybe (Quat s)
 qInv q =

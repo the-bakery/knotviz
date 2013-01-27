@@ -49,8 +49,28 @@ ringCurve r t =
     let t' = 2 * pi * t
     in vScale r (Vec3 (cos t') (sin t') 0)
 
-torusPatch :: (Floating s) => s -> s -> Patch s
-torusPatch r1 r2 t u =
+tubularPatch :: (Eq s, Floating s) => Curve (Dual s) -> Curve (Dual s) -> Patch (Dual s)
+tubularPatch path mask t u =
+    let d0 = path t
+        d1 = vUnit0 $ diffF d0
+        d2 = vUnit0 $ diffF d1
+        -- [d0, d1, d2] = take 3 $ diffs0F $ path t
+        i = d2
+        j = vCross k i
+        k = d1
+        frame = M3x3 i j k
+        v = mask u
+    in vAdd d0 (mApp frame v)
+
+torusPatch :: (Eq s, Floating s) => s -> s -> Patch (Dual s)
+torusPatch r1 r2 =
+    tubularPatch (ringCurve $ lift r1) (ringCurve $ lift r2)
+
+curveTubePatch :: (Eq s, Floating s) => Curve (Dual s) -> s -> Patch (Dual s)
+curveTubePatch curve r = tubularPatch curve (ringCurve $ lift r)
+
+torusPatch2 :: (Floating s) => s -> s -> Patch s
+torusPatch2 r1 r2 t u =
     let t' = 2 * pi * t
         u' = 2 * pi * u
         i = Vec3 (cos t') (sin t') 0
