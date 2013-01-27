@@ -44,6 +44,9 @@ evalPatch patch t u =
         nrm = normalF patch t u
     in (pos, nrm, t, u)
 
+segmentCurve :: (Num s) => Vec3 s -> Vec3 s -> Curve s
+segmentCurve a b t = vAdd a (vScale t (vSub b a))
+
 ringCurve :: (Floating s) => s -> Curve s
 ringCurve r t =
     let t' = 2 * pi * t
@@ -68,6 +71,11 @@ torusPatch r1 r2 =
 
 curveTubePatch :: (Eq s, Floating s) => Curve (Dual s) -> s -> Patch (Dual s)
 curveTubePatch curve r = tubularPatch curve (ringCurve $ lift r)
+
+curveRibbonPatch :: (Eq s, Floating s) => Curve (Dual s) -> s -> Patch (Dual s)
+curveRibbonPatch curve r =
+    let r' = lift r in
+    tubularPatch curve ( segmentCurve (Vec3 (-r') 0 0) (Vec3 r' 0 0) )
 
 torusPatch2 :: (Floating s) => s -> s -> Patch s
 torusPatch2 r1 r2 t u =

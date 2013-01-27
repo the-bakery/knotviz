@@ -74,7 +74,8 @@ curve = sampleCurve 1024 $ torusCurve 3 5
 
 patch :: PolyQuad GLdouble
 --patch = samplePatch 64 32 $ torusPatch 2.0 0.8
-patch = samplePatch 256 16 $ curveTubePatch (torusCurve 3 5) 0.5
+--patch = samplePatch 256 16 $ curveTubePatch (torusCurve 3 5) 0.5
+patch = samplePatch 256 4 $ curveRibbonPatch (torusCurve 3 5) 0.3
 
 displayAction :: State -> DisplayCallback
 displayAction state = do
