@@ -54,6 +54,9 @@ ringCurve r t =
 
 tubularPatch :: (Eq s, Floating s) => Curve (Dual s) -> Curve (Dual s) -> Patch (Dual s)
 tubularPatch path mask t u =
+    {- http://en.wikipedia.org/wiki/Tubular_neighborhood
+       http://en.wikipedia.org/wiki/Vector_bundle
+       http://en.wikipedia.org/wiki/Frenet%E2%80%93Serret_formulas -}
     let d0 = path t
         d1 = vUnit0 $ diffF d0
         d2 = vUnit0 $ diffF d1
