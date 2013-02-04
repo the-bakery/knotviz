@@ -70,12 +70,12 @@ renderPolyQuad vs = do
     [[(i,j),(i+1,j),(i+1,j+1),(i,j+1)] | (i,j) <- range ((0,0),(n-1,m-1))]
 
 curve :: PolyLine GLdouble
-curve = sampleCurve 1024 $ torusCurve 3 5
+curve = sampleCurve 1024 $ torusCurve 12 4
 
 patch :: PolyQuad GLdouble
 --patch = samplePatch 64 32 $ torusPatch 2.0 0.8
 --patch = samplePatch 256 16 $ curveTubePatch (torusCurve 3 5) 0.5
-patch = samplePatch 256 4 $ curveRibbonPatch (torusCurve 3 5) 0.3
+patch = samplePatch 256 4 $ curveRibbonPatch (torusCurve 12 4) 0.3
 
 displayAction :: State -> DisplayCallback
 displayAction state = do
