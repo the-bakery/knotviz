@@ -1,7 +1,15 @@
 
-from sympy import Dummy, Lambda, diff, sin, cos, pi
+import sympy
+from sympy import Symbol, Dummy, pi, sin, cos
 
-from VQM import Vec3, M3x3
+from VQM import Vec3, Quat, M3x3
+
+
+def diff(v, d):
+    if isinstance(v, Vec3):
+        return v.fmap(lambda e: sympy.diff(e, d))
+    else:
+        return sympy.diff(v, d)
 
 
 class LambdaV(object):
@@ -13,25 +21,25 @@ class LambdaV(object):
 
 def ringCurve(r):
     t = Dummy('t')
-    return LambdaV(t, Vec3(cos(2*pi*t), sin(2*pi*t), 0).scale(r))
+    return LambdaV( (t,), Vec3(cos(2*pi*t), sin(2*pi*t), 0).scale(r) )
 
 
 def normalPatch(patch):
     (t, u) = patch.vars
     f = patch.expr
-    dfdt = f.diff(t).unit()
-    dfdu = f.diff(u).unit()
+    dfdt = diff(f,t).unit()
+    dfdu = diff(f,u).unit()
     return LambdaV( (t,u), dfdt.cross(dfdu) )
 
 
 def tubularPatch(path, mask):
-    t = path.vars
-    u = mask.vars
+    (t,) = path.vars
+    (u,) = mask.vars
     d0 = path.expr
-    d1 = d0.diff(t).unit()
-    d2 = d1.diff(t).unit()
+    d1 = diff(d0,t).unit()
+    d2 = diff(d1,t).unit()
     i = d2
     k = d1
     j = k.cross(i)
     frame = M3x3(i, j, k)
-    return LambdaV( (t,u), d0 + frame.apply(mask.expr) )
+    return LambdaV( (t,u), d0 + frame(mask.expr) )
