@@ -83,7 +83,7 @@ class Quat(object):
         return sqrt(self.dot(self))
 
     def __mul__(self, q):
-	return Quat(self.w*q.w - self.v.dot(q.v),
+        return Quat(self.w*q.w - self.v.dot(q.v),
                     self.v.scale(q.w) + q.v.scale(self.w) + self.v.cross(q.v))
 
     def __truediv__(self, q):
