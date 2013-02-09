@@ -5,16 +5,6 @@ from sympy import Symbol, Dummy, pi, sin, cos
 from VQM import Vec3, Quat, M3x3
 
 
-class Uniform(Dummy):
-    def __init__(self, *args):
-        super(Uniform, self).__init__(*args)
-
-
-class Varying(Dummy):
-    def __init__(self, *args):
-        super(Varying, self).__init__(*args)
-
-
 def diff(v, d):
     if isinstance(v, Vec3):
         return v.fmap(lambda e: sympy.diff(e, d))
