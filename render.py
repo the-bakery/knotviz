@@ -12,11 +12,13 @@ class Knot_Display(pyglet.window.Window):
 
         self.program = ShaderProgram(
             FragmentShader('out vec4 outputColor; void main() { outputColor = vec4(1,1,1,1); }'),
-            VertexShader('''layout(location = 0) in vec2 position;
-                          void main() { 
-                              vec4 p = vec4(position.x, position.y, cos(position.x*10)*cos(position.y*10) * 0.2, 1);
-                              gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * p; 
-                          }''')
+            VertexShader('''uniform float pi = 3.14159;
+                            layout(location = 0) in vec2 param;
+                            void main() { 
+                                vec2 pos = (param-0.5)*2*pi;
+                                vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), 1/pos.x + 2*pi);
+                                gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * p; 
+                            }''')
         )
 
     def init_grid(self, points):
@@ -43,10 +45,10 @@ class Knot_Display(pyglet.window.Window):
         self.clear()
         glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
-        glTranslatef(0, 0, -2.0)
-        glRotatef(self.t*40, 0.0, 1.0, 0.0)
-        glTranslatef(-0.5, -0.5, 0)
-        glPointSize(2)
+        glTranslatef(0, 0, -0.8)
+        glRotatef(self.t*4, 1.0, 1.0, 0.0)
+        # glTranslatef(-0.5, -0.5, 0)
+        glPointSize(1.1)
         with self.program:
             self.vbo.bind()
             glEnableVertexAttribArray(0)

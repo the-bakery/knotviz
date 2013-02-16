@@ -1,0 +1,8 @@
+// Twisted toroidal thing
+vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y)*cos(pos.x), sin(pos.x)*sin(pos.y), 1);
+
+// Eye of Sauron 
+vec4 p = vec4(0.5*sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), pos.x);
+
+// Shell House
+vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), pos.x + 2*pi);
