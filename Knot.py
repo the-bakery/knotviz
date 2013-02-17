@@ -1,6 +1,6 @@
 
 import sympy
-from sympy import Symbol, Dummy, pi, sin, cos
+from sympy import Dummy, sin, cos, trigsimp
 
 from VQM import Vec3, Quat, M3x3
 
@@ -19,8 +19,9 @@ class LambdaV(object):
         self.expr = e
 
 
-def ringCurve(r):
-    t = Dummy('t')
+def ringCurve(r=1.0):
+    t = Dummy()
+    pi = 3.1415926
     return LambdaV( (t,), Vec3(cos(2*pi*t), sin(2*pi*t), 0).scale(r) )
 
 
@@ -43,3 +44,11 @@ def tubularPatch(path, mask):
     j = k.cross(i)
     frame = M3x3(i, j, k)
     return LambdaV( (t,u), d0 + frame(mask.expr) )
+
+
+def torusPatch(r_maj=2.0, r_min=1.0):
+    return tubularPatch(ringCurve(r_maj), ringCurve(r_min))
+
+
+torus = torusPatch()
+torus.expr = torus.expr.fmap(trigsimp)

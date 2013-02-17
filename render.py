@@ -14,16 +14,16 @@ class Knot_Display(pyglet.window.Window):
             FragmentShader('out vec4 outputColor; void main() { outputColor = vec4(1,1,1,1); }'),
             VertexShader('''uniform float pi = 3.14159;
                             layout(location = 0) in vec2 param;
+                            vec4 torus(float v25, float v26) { return vec4(((2.00000000000000 * cos((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v25)) * cos((6.28318520000000 * v26)))), ((2.00000000000000 * sin((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v26)) * sin((6.28318520000000 * v25)))), (1.00000000000000 * sin((6.28318520000000 * v26))), 1.0); }
                             void main() { 
-                                vec2 pos = (param-0.5)*2*pi;
-                                vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), 1/pos.x + 2*pi);
+                                vec4 p = torus(param.x, param.y);
+                                //vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), 1/pos.x + 2*pi);
                                 gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * p; 
                             }''')
         )
 
     def init_grid(self, points):
         point_data = [ coord for point in points for coord in point ]
-
         num_coords = len(point_data)
         pointsGl = (GLfloat * num_coords)(*point_data)
         self.vbo = pyglet.graphics.vertexbuffer.create_buffer(
@@ -41,14 +41,16 @@ class Knot_Display(pyglet.window.Window):
         glMatrixMode(GL_MODELVIEW)
         return pyglet.event.EVENT_HANDLED
 
+    def on_drag(
+
     def on_draw(self):
         self.clear()
         glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
-        glTranslatef(0, 0, -0.8)
+        glTranslatef(0, 0, -7.0)
         glRotatef(self.t*4, 1.0, 1.0, 0.0)
         # glTranslatef(-0.5, -0.5, 0)
-        glPointSize(1.1)
+        glPointSize(1.8)
         with self.program:
             self.vbo.bind()
             glEnableVertexAttribArray(0)
