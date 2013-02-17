@@ -41,7 +41,8 @@ class Knot_Display(pyglet.window.Window):
         glMatrixMode(GL_MODELVIEW)
         return pyglet.event.EVENT_HANDLED
 
-    def on_drag(
+    def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+
 
     def on_draw(self):
         self.clear()
