@@ -9,9 +9,11 @@ class Knot_Display(pyglet.window.Window):
 
     def __init__(self, **kwargs):
         super(Knot_Display, self).__init__(**kwargs)
-
+        self.t = 0.0
         self.gridwidth = 100
         self.gridheight = 100
+        self.orientation = Quat(1, Vec3(0,0,0))
+        self.zoom = 1.0
 
         def _create_grid(width, height):
             columns = [ float(x)/width for x in range(width) ]
@@ -24,9 +26,6 @@ class Knot_Display(pyglet.window.Window):
         self.vertex_list = pyglet.graphics.vertex_list(self.gridwidth * self.gridheight, 'v2f')
         self.vertex_list.vertices = list(_create_grid(self.gridwidth, self.gridheight))
 
-
-        self.t = 0.0
-        self.orientation = Quat(1, Vec3(0,0,0))
 
         self.program = ShaderProgram(
             FragmentShader('''#version 130
@@ -54,16 +53,23 @@ class Knot_Display(pyglet.window.Window):
         return pyglet.event.EVENT_HANDLED
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        # the rotation vector is the displacement vector rotated by 90 degrees
-        v = Vec3(dy, -dx, 0).scale(0.002)
-        # update the current orientation
-        self.orientation = self.orientation * v.rotation()
+        # rotate on left-drag
+        if buttons == 1:
+            # the rotation vector is the displacement vector rotated by 90 degrees
+            v = Vec3(dy, -dx, 0).scale(0.002)
+            # update the current orientation
+            self.orientation = self.orientation * v.rotation()
+        # zoom on right-drag
+        elif buttons == 4:
+            self.zoom += self.zoom * dy*0.01
+
 
     def on_draw(self):
         self.clear()
         glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
         glTranslatef(0, 0, -7.0)
+        glScalef(self.zoom, self.zoom, self.zoom)
 
         r = self.orientation.conj().matrix()
         # column-major order
@@ -84,11 +90,8 @@ class Knot_Display(pyglet.window.Window):
 
 def main():
 
-
-
     config = pyglet.gl.Config(sample_buffers=1, samples=4)
     window = Knot_Display(caption='Knotviz in the house', resizable=True, vsync=True, config=config)
-
 
     pyglet.clock.schedule_interval(window.update, (1.0/60))
     pyglet.app.run()
