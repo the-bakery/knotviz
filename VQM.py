@@ -1,6 +1,6 @@
 
 from __future__ import division
-from sympy import sqrt
+from sympy import sqrt, sin, cos
 
 
 class Vec3(object):
@@ -42,6 +42,11 @@ class Vec3(object):
 
     def unit(self):
         return self.scale(1 / self.norm())
+
+    def rotation(self):
+        n = self.norm()
+        u = self.unit()
+        return Quat(cos(n), u.scale(sin(n)))
 
 
 class Quat(object):
