@@ -3,6 +3,7 @@ from pyglet.gl import *
 from gletools import ShaderProgram, FragmentShader, VertexShader
 
 from VQM import *
+from Grid import *
 
 
 class Knot_Display(pyglet.window.Window):
@@ -10,33 +11,25 @@ class Knot_Display(pyglet.window.Window):
     def __init__(self, **kwargs):
         super(Knot_Display, self).__init__(**kwargs)
         self.t = 0.0
-        self.gridwidth = 100
-        self.gridheight = 100
         self.orientation = Quat(1, Vec3(0,0,0))
         self.zoom = 1.0
 
-        def _create_grid(width, height):
-            columns = [ float(x)/width for x in range(width) ]
-            rows = [ float(y)/height for y in range(height) ]
-            for r in rows:
-                for c in columns:
-                    yield r
-                    yield c
-
-        self.vertex_list = pyglet.graphics.vertex_list(self.gridwidth * self.gridheight, 'v2f')
-        self.vertex_list.vertices = list(_create_grid(self.gridwidth, self.gridheight))
+        self.grid = Grid(20, 20)
 
 
         self.program = ShaderProgram(
             FragmentShader('''#version 130
-                              out vec4 outputColor; void main() { outputColor = vec4(1,1,1,1); }'''),
+                              varying vec2 uv;
+                              out vec4 outputColor; void main() { outputColor = vec4(uv.x,uv.y,0,1); }'''),
             VertexShader('''#version 130
                             uniform float pi = 3.14159;
                             /* layout(location = 0) */ in vec2 param;
+                            varying vec2 uv;
                             vec4 torus(float v25, float v26) { return vec4(((2.00000000000000 * cos((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v25)) * cos((6.28318520000000 * v26)))), ((2.00000000000000 * sin((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v26)) * sin((6.28318520000000 * v25)))), (1.00000000000000 * sin((6.28318520000000 * v26))), 1.0); }
                             void main() {
                                 vec4 p = torus(param.x, param.y);
-                                //vec4 p = vec4(sin(pos.x)*cos(pos.y), sin(pos.y), cos(pos.x)*cos(pos.y), 1/pos.x + 2*pi);
+                                //vec4 p = vec4(param.x, param.y, 0, 1);
+                                uv = param.xy;
                                 gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * p;
                             }''')
         )
@@ -50,19 +43,28 @@ class Knot_Display(pyglet.window.Window):
         glLoadIdentity()
         gluPerspective(50, width / float(height), .01, 100)
         glMatrixMode(GL_MODELVIEW)
+
+        glDepthFunc(GL_LESS)
+        glEnable(GL_DEPTH_TEST)
         return pyglet.event.EVENT_HANDLED
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        self.set_exclusive_mouse()
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        self.set_exclusive_mouse(exclusive=False)
+
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         # rotate on left-drag
-        if buttons == 1:
+        if buttons & 1:
             # the rotation vector is the displacement vector rotated by 90 degrees
             v = Vec3(dy, -dx, 0).scale(0.002)
             # update the current orientation
             self.orientation = self.orientation * v.rotation()
         # zoom on right-drag
-        elif buttons == 4:
+        if buttons & 4:
             self.zoom += self.zoom * dy*0.01
-
 
     def on_draw(self):
         self.clear()
@@ -83,8 +85,9 @@ class Knot_Display(pyglet.window.Window):
         glMultMatrixf(array);
 
         glPointSize(1.8)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         with self.program:
-            self.vertex_list.draw(GL_POINTS)
+            self.grid.draw_triangles()
         glPopMatrix()
 
 
