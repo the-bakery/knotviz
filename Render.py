@@ -14,20 +14,27 @@ class Knot_Display(pyglet.window.Window):
         self.orientation = Quat(1, Vec3(0,0,0))
         self.zoom = 1.0
 
-        self.grid = Grid(20, 20)
+        self.grid = Grid(100, 100)
 
 
         self.program = ShaderProgram(
             FragmentShader('''#version 130
+                              uniform float pi;
                               varying vec2 uv;
-                              out vec4 outputColor; void main() { outputColor = vec4(uv.x,uv.y,0,1); }'''),
+                              float tf(float f) { return 0.5*sin(20*pi*f) + 0.5; }
+                              out vec4 outputColor; void main() {
+                                outputColor = true /* gl_FrontFacing */ ?
+                                  vec4(tf(uv.x), tf(uv.y), 0, 1) :
+                                  vec4(1, 1 - tf(uv.x), 1 - tf(uv.y), 1); }'''),
             VertexShader('''#version 130
                             uniform float pi = 3.14159;
                             /* layout(location = 0) */ in vec2 param;
                             varying vec2 uv;
                             vec4 torus(float v25, float v26) { return vec4(((2.00000000000000 * cos((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v25)) * cos((6.28318520000000 * v26)))), ((2.00000000000000 * sin((6.28318520000000 * v25))) + (-1.00000000000000 * cos((6.28318520000000 * v26)) * sin((6.28318520000000 * v25)))), (1.00000000000000 * sin((6.28318520000000 * v26))), 1.0); }
+                            //vec4 knot(float v15, float v16) { return vec4(((-1.00000000000000 * cos((18.8495556000000 * v15)) * cos((12.5663704000000 * v15))) + (2.00000000000000 * cos((12.5663704000000 * v15)))), ((2.00000000000000 * sin((12.5663704000000 * v15))) + (-1.00000000000000 * cos((18.8495556000000 * v15)) * sin((12.5663704000000 * v15)))), (1.00000000000000 * sin((18.8495556000000 * v15))), 1.0); }
                             void main() {
                                 vec4 p = torus(param.x, param.y);
+                                //vec4 p = knot(param.x, param.y);
                                 //vec4 p = vec4(param.x, param.y, 0, 1);
                                 uv = param.xy;
                                 gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * p;
@@ -49,10 +56,12 @@ class Knot_Display(pyglet.window.Window):
         return pyglet.event.EVENT_HANDLED
 
     def on_mouse_press(self, x, y, button, modifiers):
-        self.set_exclusive_mouse()
+        # self.set_exclusive_mouse()
+        return
 
     def on_mouse_release(self, x, y, button, modifiers):
-        self.set_exclusive_mouse(exclusive=False)
+        # self.set_exclusive_mouse(exclusive=False)
+        return
 
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
@@ -85,7 +94,7 @@ class Knot_Display(pyglet.window.Window):
         glMultMatrixf(array);
 
         glPointSize(1.8)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         with self.program:
             self.grid.draw_triangles()
         glPopMatrix()

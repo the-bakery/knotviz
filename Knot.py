@@ -1,6 +1,7 @@
 
 import sympy
-from sympy import Dummy, sin, cos, trigsimp
+from sympy import Dummy, sin, cos
+from sympy import simplify, trigsimp
 
 from VQM import Vec3, Quat, M3x3
 
@@ -30,25 +31,41 @@ def normalPatch(patch):
     f = patch.expr
     dfdt = diff(f,t).unit()
     dfdu = diff(f,u).unit()
-    return LambdaV( (t,u), dfdt.cross(dfdu) )
+    expr = dfdt.cross(dfdu)
+    return LambdaV( (t,u), expr.fmap(simplify) )
 
 
 def tubularPatch(path, mask):
     (t,) = path.vars
     (u,) = mask.vars
     d0 = path.expr
-    d1 = diff(d0,t).unit()
-    d2 = diff(d1,t).unit()
+    d1 = diff(d0,t).unit().fmap(simplify)
+    d2 = diff(d1,t).unit().fmap(simplify)
     i = d2
     k = d1
-    j = k.cross(i)
+    j = k.cross(i).fmap(simplify)
+    print 'i: %s' % i
+    print 'j: %s' % j
+    print 'k: %s' % k
     frame = M3x3(i, j, k)
-    return LambdaV( (t,u), d0 + frame(mask.expr) )
+    expr = d0 + frame(mask.expr)
+    return LambdaV( (t,u), expr.fmap(simplify) )
 
 
 def torusPatch(r_maj=2.0, r_min=1.0):
-    return tubularPatch(ringCurve(r_maj), ringCurve(r_min))
+    surf = tubularPatch(ringCurve(r_maj), ringCurve(r_min))
+    surf.expr.fmap(simplify)
+    print 'surf: %s' % surf.expr
+    return surf
 
 
-torus = torusPatch()
-torus.expr = torus.expr.fmap(trigsimp)
+def torusKnot(p, q):
+    torus = torusPatch()
+    (t, u) = torus.vars
+    expr = torus.expr.fmap( lambda e: e.subs( [(t, p*t), (u, q*t)] ) )
+    return LambdaV( (t,), expr.fmap(simplify) )
+
+surf = tubularPatch( torusKnot(2,3), ringCurve() )
+
+if __name__=='__main__':
+    print compileFunction('surf', surf)

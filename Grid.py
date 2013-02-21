@@ -21,14 +21,10 @@ class Grid(object):
                 indices.append((width+1) * (r+1) + c)
             indices.append((width+1) * (r+1) + width)
 
-        print vertex_count
-        print len(vertices)
-        print len(indices)
         self.vertex_list = pyglet.graphics.vertex_list_indexed(
                 vertex_count,
                 indices,
                 ('v2f/static', vertices))
-        print len(self.vertex_list.indices)
 
     def draw_points(self):
         self.vertex_list.draw(GL_POINTS)
