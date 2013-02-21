@@ -3,8 +3,8 @@ import sympy
 from sympy import Dummy, sin, cos
 from sympy import simplify, trigsimp
 
-from VQM import Vec3, Quat, M3x3
-
+from VQM import *
+from GLSL import *
 
 def diff(v, d):
     if isinstance(v, Vec3):
@@ -29,9 +29,9 @@ def ringCurve(r=1.0):
 def normalPatch(patch):
     (t, u) = patch.vars
     f = patch.expr
-    dfdt = diff(f,t).unit()
-    dfdu = diff(f,u).unit()
-    expr = dfdt.cross(dfdu)
+    dfdt = diff(f,t)
+    dfdu = diff(f,u)
+    expr = dfdt.cross(dfdu).unit()
     return LambdaV( (t,u), expr.fmap(simplify) )
 
 
@@ -55,7 +55,6 @@ def tubularPatch(path, mask):
 def torusPatch(r_maj=2.0, r_min=1.0):
     surf = tubularPatch(ringCurve(r_maj), ringCurve(r_min))
     surf.expr.fmap(simplify)
-    print 'surf: %s' % surf.expr
     return surf
 
 
@@ -65,7 +64,10 @@ def torusKnot(p, q):
     expr = torus.expr.fmap( lambda e: e.subs( [(t, p*t), (u, q*t)] ) )
     return LambdaV( (t,), expr.fmap(simplify) )
 
-surf = tubularPatch( torusKnot(2,3), ringCurve() )
+# surf = tubularPatch( torusKnot(2,3), ringCurve() )
+
+normal = normalPatch( torusPatch() )
 
 if __name__=='__main__':
-    print compileFunction('surf', surf)
+   print normal.expr
+   print compileFunction('normal', normal)

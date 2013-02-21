@@ -41,7 +41,7 @@ class Vec3(object):
         return sqrt(self.dot(self))
 
     def unit(self):
-        return self.scale(1 / self.norm())
+        return self.scale(1.0 / self.norm())
 
     def rotation(self):
         n = self.norm()
