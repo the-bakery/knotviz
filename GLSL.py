@@ -26,11 +26,11 @@ class GLSL(object):
         return str(expr)
 
     def Rational(self, expr):
-        return self.paren( self(expr.p) + '/' + self(expr.q) )
+        return self.paren( '%s / %s' % (self(expr.p), self(expr.q)) )
 
     def Symbol(self, expr):
         return str(expr)
-    
+
     def Dummy(self, expr):
         return 'v%s' % expr.name
 
@@ -39,15 +39,15 @@ class GLSL(object):
 
     def Uniform(self, expr):
         return self.Dummy(expr)
-    
+
     def Add(self, expr):
-        return self.paren( ' + '.join(glsl(e) for e in expr.args) )
+        return self.paren( ' + '.join(self(e) for e in expr.args) )
 
     def Mul(self, expr):
-        return self.paren( ' * '.join(glsl(e) for e in expr.args) )
+        return self.paren( ' * '.join(self(e) for e in expr.args) )
 
     def Pow(self, expr):
-        return 'pow' + self.paren( ', '.join((self(expr.args[0]), self(expr.args[1]))) )
+        return 'pow%s' % self.paren( ', '.join((self(expr.args[0]), self(expr.args[1]))) )
 
     def Vec3(self, expr):
         return 'vec4(%s, %s, %s, 1.0)' % (glsl(expr.x), glsl(expr.y), glsl(expr.z))
@@ -60,9 +60,14 @@ class GLSL(object):
 
     def NegativeOne(self, expr):
         return '-1'
-    
+
     def paren(self, text):
-        return '(' + text + ')'
+        return '(%s)' % text
+
+    def Vector(self, vec):
+        [(row, _)] = vec.args
+        column = row.transpose()
+        return 'vec4(%s, 1.0)' % ', '.join(self(c) for c in column)
 
     def __call__(self, expr):
         # expr = sympify(expr)
@@ -80,4 +85,3 @@ def compileFunction(name, func):
     print [ var.name for var in func.vars ]
     body = glsl(func.expr)
     return 'vec4 %s(%s) { return %s; }' % (name, args, body)
-
