@@ -1,12 +1,87 @@
 
 from __future__ import division
 from collections import Iterable
+from IPython.display import Latex, display
 
 
 Scalar = 0
 Vector = 1
 
 kindsymbol = {Scalar: 'S', Vector: 'V'}
+
+
+class Translator(object):
+
+    def __call__(self, expr):
+        try:
+            func = getattr(self, type(expr).__name__)
+            return func(expr)
+        except Exception as e:
+            return self.__default__(expr)
+
+
+class SX(Translator):
+
+    def Integer(self, expr):
+        return str(expr[0])
+
+    def Symbol(self, expr):
+        return expr[0]
+
+    def __default__(self, expr):
+        return '(%s %s)' % (expr.name(), ' '.join(self(c) for c in expr))
+
+toSX = SX()
+
+
+class LaTeX(Translator):
+
+    def Constant(self, expr):
+        if expr.kind == Vector:
+            form = '\\vec{%s}'
+        else:
+            form = '%s'
+        return form % str(expr[0])
+
+    def Integer(self, expr):
+        return str(expr[0])
+
+    def Null(self, expr):
+        return '\\vec{0}'
+
+    def Symbol(self, expr):
+        if expr.kind == Vector:
+            form = '\\vec{%s}'
+        else:
+            form = '%s'
+        return form % expr[0]
+
+    def Add(self, expr):
+        return '%s + %s' % tuple(self(c) for c in expr)
+
+    def Sub(self, expr):
+        return '%s - %s' % tuple(self(c) for c in expr)
+
+    def Mul(self, expr):
+        if (expr[0].kind, expr[1].kind) == (Vector, Vector):
+            form = '\\left\\langle %s, %s \\right\\rangle'
+        else:
+            form = '%s \\cdot %s'
+        return form % tuple(self(c) for c in expr)
+
+    def Div(self, expr):
+        return '\\frac{%s}{%s}' % tuple(self(c) for c in expr)
+
+    def Pow(self, expr):
+        return '%s^{%s}' % tuple(self(c) for c in expr)
+
+    def __default__(self, expr):
+        return '/* %s */' % expr.name()
+
+
+def toLaTeX(expr):
+    return display( Latex( '$$ %s $$' % LaTeX()(expr) ) )
+
 
 class Expr(object):
 
@@ -16,6 +91,12 @@ class Expr(object):
 
     def __iter__(self):
         return self.args.__iter__()
+
+    def name(self):
+        return type(self).__name__
+
+    def __getitem__(self, index):
+        return self.args[index]
 
     def __repr__(self):
         return '%s%s(%s)' % ( kindsymbol[self.kind],
@@ -35,7 +116,7 @@ class Expr(object):
         return Mul(self, expr)
 
     def __truediv__(self, expr):
-        return Add(self, expr)
+        return Div(self, expr)
 
     def __pow__(self, expr):
         return Pow(self, expr)
@@ -77,13 +158,13 @@ class Integer(Constant):
         super(Integer, self).__init__(Scalar, val)
 
     def __int__(self):
-        return int(self.args[0])
+        return self.args[0]
 
 
 class Floating(Constant):
 
     def __init__(self, val):
-        super(Rational, self).__init__(Scalar, val)
+        super(Floating, self).__init__(Scalar, val)
 
     def __float__(self):
         return float(self.args[0])
@@ -136,7 +217,9 @@ class Add(Compound):
 
     def diff(self, var):
         assert var.kind == Scalar
-        return Add(t.diff(var) for t in self)
+        for t in self:
+            print t
+        return Add(*(t.diff(var) for t in self))
 
 
 class Neg(Compound):
@@ -145,7 +228,7 @@ class Neg(Compound):
         super(Neg, self).__init__(x.kind, x)
 
     def diff(self, var):
-        return Neg(c.diff(var) for c in self)
+        return Neg(*(c.diff(var) for c in self))
 
 
 class Sub(Compound):
@@ -156,7 +239,7 @@ class Sub(Compound):
 
     def diff(self, var):
         assert var.kind == Scalar
-        return Sub(t.diff(var) for t in self)
+        return Sub(*(t.diff(var) for t in self))
 
 
 class Mul(Compound):
@@ -234,8 +317,14 @@ class Pow(Compound):
 class Div(Compound):
 
     def __init__(self, x, y):
-        assert y.kind == Scalar
-        super(Sub, self).__init__(kind, x, y)
+        if x.kind == Scalar:
+            kind = y.kind
+        else:
+            if y.kind == Scalar:
+                kind = Vector
+            else:
+                kind = Scalar
+        super(Div, self).__init__(kind, x, y)
 
     def diff(self, var):
         assert var.kind == Scalar
