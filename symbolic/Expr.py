@@ -1,40 +1,11 @@
 
 from __future__ import division
-from collections import Iterable
-from IPython.display import Latex, display
 
-from Tree import *
-from Polymorpher import *
+from symbolic.Tree import *
 
 
 Scalar = 0
 Vector = 1
-
-kindsymbol = {Scalar: 'S', Vector: 'V'}
-
-
-class SX(Polymorpher):
-
-    def Integer(self, expr):
-        return str(expr.value)
-
-    def Symbol(self, expr):
-        return expr.name
-
-    def Compound(self, expr, *subx):
-        return '(%s %s)' % (expr.name(), ' '.join(subx))
-
-
-def toSX(tree):
-    return foldTree( SX(), tree )
-
-
-def dot(a, b):
-    return Dot(a, b)
-
-
-def cross(a, b):
-    return Cross(a, b)
 
 
 class Expr(Tree):
@@ -60,6 +31,14 @@ class Expr(Tree):
 
     def __pow__(self, expr):
         return Pow(self, expr)
+
+
+def dot(a, b):
+    return Dot(a, b)
+
+
+def cross(a, b):
+    return Cross(a, b)
 
 
 class Atom(Expr):
@@ -190,40 +169,3 @@ class Div(Compound):
             else:
                 kind = Scalar
         super(Div, self).__init__(kind, x, y)
-
-
-def match(pattern, structure, bindings=None):
-
-    if bindings == None:
-        bindings = {}
-
-    if isinstance(pattern, Symbol):
-        if pattern.args[0] in bindings:
-            if bindings[pattern.args[0]] == structure:
-                return bindings
-            else:
-                return False
-        else:
-            bindings[pattern.args[0]] = structure
-            return bindings
-
-    if pattern.__class__ != structure.__class__:
-        return False
-
-    if not isinstance(pattern, Iterable) or not isinstance(structure, Iterable):
-        if pattern == structure:
-            return bindings
-        else:
-            return False
-
-    subp = list(pattern)
-    subs = list(structure)
-
-    if len(subp) != len(subs):
-        return False
-
-    for p, s in zip(subp, subs):
-        if match(p, s, bindings) == False:
-            return False
-
-    return bindings
