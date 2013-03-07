@@ -4,15 +4,83 @@ from __future__ import division
 from symbolic.Tree import *
 
 
-Scalar = 0
-Vector = 1
+Unknown = 0
+Scalar = 1
+Vector = 2
+
+
+class KindCheck(Polymorpher):
+
+    def Expr(self, expr, *subx):
+        assert expr.kind != Unknown
+
+    def Add(self, expr, *subx):
+        lookup = {(Unknown, Unknown): Unknown,
+                  (Unknown, Scalar): Unknown,
+                  (Unknown, Vector): Unknown,
+                  (Scalar, Unknown): Unknown,
+                  (Scalar, Scalar): Scalar,
+                  (Scalar, Vector}: Unknown,
+                  (Vector, Unknown): Unknown,
+                  (Vector, Scalar): Unknown,
+                  (Vector, Vector}: Vector}
+        expr.kind = lookup[subx]
+        return self.Expr(expr, *subx)
+
+    def Sub(self, expr, *subx):
+        return self.Add(expr, *subx)
+
+    def Neg(self, expr, *subx):
+        lookup = {(Unknown,): Unknown,
+                  (Scalar,): Scalar,
+                  (Vector,): Vector)
+        expr.kind = lookup[subx]
+        return self.Expr(expr, *subx)
+
+    def Mul(self, expr, *subx):
+        lookup = {(Unknown, Unknown): Unknown,
+                  (Unknown, Scalar): Unknown,
+                  (Unknown, Vector): Unknown,
+                  (Scalar, Unknown): Unknown,
+                  (Scalar, Scalar): Scalar,
+                  (Scalar, Vector}: Vector,
+                  (Vector, Unknown): Unknown,
+                  (Vector, Scalar): Vector,
+                  (Vector, Vector}: Unknown}
+        expr.kind = lookup[subx]
+        return self.Expr(expr, *subx)
+
+    def Div(self, expr, *subx):
+        lookup = {(Unknown, Unknown): Unknown,
+                  (Unknown, Scalar): Unknown,
+                  (Unknown, Vector): Unknown,
+                  (Scalar, Unknown): Unknown,
+                  (Scalar, Scalar): Scalar,
+                  (Scalar, Vector}: Unknown,
+                  (Vector, Unknown): Unknown,
+                  (Vector, Scalar): Vector,
+                  (Vector, Vector}: Unknown}
+        expr.kind = lookup[subx]
+        return self.Expr(expr, *subx)
+
+    def Inv(self, expr, *subx):
+        lookup = {(Unknown,): Unknown,
+                  (Scalar,): Scalar,
+                  (Vector,): Unknown)
+        expr.kind = lookup[subx]
+        return self.Expr(expr, *subx)
+
+    def Pow(self, expr, *subx):
+        (b, e) = subx
+        assert b.kind == Scalar and e.kind == Scalar
+        return self.Expr(expr, *subx)
 
 
 class Expr(Tree):
 
-    def __init__(self, kind, *subx):
+    def __init__(self, *subx):
         super(Expr, self).__init__(*subx)
-        self.kind = kind
+        self.kind = Unknown
 
     def __add__(self, expr):
         return Add(self, expr)
@@ -44,14 +112,26 @@ def cross(a, b):
 class Atom(Expr):
 
     def __init__(self, kind):
-        super(Atom, self).__init__(kind)
+        super(Atom, self).__init__()
+        self.kind = kind
 
 
 class Symbol(Atom):
 
     def __init__(self, kind, name):
+        """For kind-checking to work, the kind of every leaf node
+        in the tree must be given."""
         super(Symbol, self).__init__(kind)
         self.name = name
+
+
+class Dummy(Symbol):
+
+    count = 0
+
+    def __init__(self, kind):
+        super(Dummy, self).__init__(kind, '_%s' % count)
+        count += 1
 
 
 class Constant(Atom):
@@ -81,91 +161,74 @@ class Null(Constant):
 
 class Compound(Expr):
 
-    def __init__(self, kind, *args):
-        super(Compound, self).__init__(kind, *args)
+    def __init__(self, *args):
+        super(Compound, self).__init__(*args)
 
 
 class Vec3(Compound):
 
     def __init__(self, x, y, z):
-        super(Vec3, self).__init__(Vector, x, y, z)
+        super(Vec3, self).__init__(x, y, z)
+        self.kind = Vector
 
 
 class Add(Compound):
 
     def __init__(self, x, y):
-        assert x.kind == y.kind
-        super(Add, self).__init__(x.kind, x, y)
+        super(Add, self).__init__(x, y)
 
 
 class Neg(Compound):
 
     def __init__(self, x):
-        super(Neg, self).__init__(x.kind, x)
+        super(Neg, self).__init__(x)
 
 
 class Sub(Compound):
 
     def __init__(self, x, y):
-        assert x.kind == y.kind
-        super(Sub, self).__init__(x.kind, x, y)
+        super(Sub, self).__init__(x, y)
 
 
 class Mul(Compound):
 
     def __init__(self, x, y):
-        if x.kind == Scalar:
-            kind = y.kind
-        else:
-            if y.kind == Scalar:
-                kind = Vector
-            else:
-                kind = Scalar
-        super(Mul, self).__init__(kind, x, y)
+        super(Mul, self).__init__(x, y)
 
 
 class Dot(Compound):
 
     def __init__(self, x, y):
-        assert x.kind == Vector and y.kind == Vector
-        super(Dot, self).__init__(Scalar, x, y)
+        super(Dot, self).__init__(x, y)
+        self.kind = Scalar
 
 
 class Cross(Compound):
 
     def __init__(self, x, y):
-        assert x.kind == Vector and y.kind == Vector
-        super(Cross, self).__init__(Vector, x, y)
+        super(Cross, self).__init__(x, y)
+        self.kind = Vector
 
 
 class Inv(Compound):
 
     def __init__(self, x):
-        super(Inv, self).__init__(x.kind, x)
+        super(Inv, self).__init__(x)
 
 
 class Pow(Compound):
 
     def __init__(self, b, e):
-        if b.kind == Vector:
-            assert isinstance(e, Integer)
-            if int(e) % 2 == 0:
-                kind = Scalar
-            else:
-                kind = Vector
-        else:
-            kind = Scalar
-        super(Pow, self).__init__(kind, b, e)
+        super(Pow, self).__init__(b, e)
+
+
+class Root(Compound):
+
+    def __init__(self, b, e):
+        super(Root, self).__init__(b, e)
 
 
 class Div(Compound):
 
     def __init__(self, x, y):
-        if x.kind == Scalar:
-            kind = y.kind
-        else:
-            if y.kind == Scalar:
-                kind = Vector
-            else:
-                kind = Scalar
-        super(Div, self).__init__(kind, x, y)
+        super(Div, self).__init__(x, y)
