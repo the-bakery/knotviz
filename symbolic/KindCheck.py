@@ -1,6 +1,7 @@
 
 from symbolic.Expr import *
 from symbolic.Polymorpher import *
+from symbolic.Tree import *
 
 
 def checkKind(expr):
@@ -8,12 +9,16 @@ def checkKind(expr):
 
 
 def inferKind(expr):
-    return KindInference()(expr)
+    return foldTree(KindInference(), expr)
 
 
 class KindInference(Polymorpher):
 
     def Expr(self, expr, *subx):
+        return expr.kind
+
+    def Lambda(self, expr, *subx):
+        expr.kind = subx[0]
         return expr.kind
 
     def Add(self, expr, *subx):
@@ -26,7 +31,6 @@ class KindInference(Polymorpher):
                   (Vector, Unknown): Unknown,
                   (Vector, Scalar): Unknown,
                   (Vector, Vector): Vector}
-        print '[%s]' % str(subx)
         expr.kind = lookup[subx]
         return expr.kind
 
@@ -74,9 +78,14 @@ class KindInference(Polymorpher):
         return expr.kind
 
     def Pow(self, expr, *subx):
-        (b, e) = subx
-        if b.kind == Scalar and e.kind == Scalar:
-            expr.kind = Scalar
-        else:
-            expr.kind = Unknown
+        lookup = {(Unknown, Unknown): Unknown,
+                  (Unknown, Scalar): Unknown,
+                  (Unknown, Vector): Unknown,
+                  (Scalar, Unknown): Unknown,
+                  (Scalar, Scalar): Scalar,
+                  (Scalar, Vector): Unknown,
+                  (Vector, Unknown): Unknown,
+                  (Vector, Scalar): Unknown,
+                  (Vector, Vector): Unknown}
+        expr.kind = lookup[subx]
         return expr.kind

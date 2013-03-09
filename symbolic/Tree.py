@@ -18,7 +18,7 @@ class Tree(object):
 def foldTree(function, tree):
     """Fold a @tree with a @function."""
     return function( tree,
-                     *(foldTree(function, subtree) for subtree in tree) )
+                     *[ foldTree(function, subtree) for subtree in tree ] )
 
 
 class Capture(Tree):
