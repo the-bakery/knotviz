@@ -98,6 +98,13 @@ class Compound(Expr):
         super(Compound, self).__init__(*args)
 
 
+class Lambda(Compound):
+
+    def __init__(self, syms, *args):
+        super(Lambda, self).__init__(*args)
+        self.syms = syms
+
+
 class Vec3(Compound):
 
     def __init__(self, x, y, z):
