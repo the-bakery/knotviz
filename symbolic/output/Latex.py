@@ -52,3 +52,6 @@ class _LaTeX(Polymorpher):
 
     def Div(self, expr, *subx):
         return '\\frac{%s}{%s}' % subx
+
+    def Pow(self, expr, *subx):
+        return '{%s}^{%s}' % subx
