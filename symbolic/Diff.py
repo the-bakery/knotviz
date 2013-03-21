@@ -6,8 +6,8 @@ from symbolic.Tree import *
 from symbolic.output.SX import *
 
 
-def diff(var, tree):
-    return foldTree( _Diff(var), tree )
+def diff(expr, var):
+    return foldTree( _Diff(var), expr )
 
 
 class _Diff(Polymorpher):
@@ -68,4 +68,24 @@ class _Diff(Polymorpher):
     def Pow(self, expr, *subx):
         (f, g) = expr
         (df, dg) = subx
-        return Mul( g, Pow( df, Sub(g, Integer(1)) ) )
+        return Mul( expr, Add( Mul(df, Div(g, f)), Mul(dg, Log(f)) ) )
+
+    def Sin(self, expr, *subx):
+        (f,) = expr
+        (df,) = subx
+        return Mul( Cos(f), df )
+
+    def Cos(self, expr, *subx):
+        (f,) = expr
+        (df,) = subx
+        return Mul( Neg(Sin(f)), df )
+
+    def Exp(self, expr, *subx):
+        (f,) = expr
+        (df,) = subx
+        return Mul( Exp(f), df )
+
+    def Log(self, expr, *subx):
+        (f,) = expr
+        (df,) = subx
+        return Mul( Neg(Inv(f)), df )

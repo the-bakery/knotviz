@@ -55,3 +55,15 @@ class _LaTeX(Polymorpher):
 
     def Pow(self, expr, *subx):
         return '{%s}^{%s}' % subx
+
+    def Sin(self, expr, *subx):
+        return '\sin\left(%s\right)' % subx
+
+    def Cos(self, expr, *subx):
+        return '\cos\left(%s\right)' % subx
+
+    def Exp(self, expr, *subx):
+        return '\exp\left(%s\right)' % subx
+
+    def Log(self, expr, *subx):
+        return '\ln\left(%s\right)' % subx

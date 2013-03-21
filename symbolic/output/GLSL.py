@@ -2,6 +2,25 @@
 from symbolic.Expr import *
 from symbolic.Polymorpher import *
 from symbolic.Tree import *
+from symbolic.KindCheck import *
+
+
+class Uniform(Dummy):
+    def __init__(self, *args):
+        super(Uniform, self).__init__(*args)
+
+
+class Varying(Dummy):
+    def __init__(self, *args):
+        super(Varying, self).__init__(*args)
+
+
+def glsl(name, func):
+    assert checkKind(func)
+    rtyp = func.expr.kind == Scalar ? 'float' : 'vec3';
+    args = ', '.join('float %s' % sym for sym in func.syms)
+    body = toGLSL(expr)
+    return '%s %s(%s) { return %s; }' % (rtyp, name, args, body)
 
 
 def toGLSL(tree):
@@ -48,3 +67,15 @@ class _GLSL(Polymorpher):
 
     def Pow(self, expr, *subx):
         return 'pow(%s, %s)' % subx
+
+    def Sin(self, expr, *subx):
+        return 'sin(%s)' % subx
+
+    def Cos(self, expr, *subx):
+        return 'cos(%s)' % subx
+
+    def Exp(self, expr, *subx):
+        return 'exp(%s)' % subx
+
+    def Log(self, expr, *subx):
+        return 'log(%s)' % subx

@@ -89,3 +89,31 @@ class KindInference(Polymorpher):
                   (Vector, Vector): Unknown}
         expr.kind = lookup[subx]
         return expr.kind
+
+    def Sin(self, expr, *subx):
+        lookup = {(Unknown): Unknown,
+                  (Scalar): Scalar,
+                  (Vector): Unknown)}
+        expr.kind = lookup[subx]
+        return expr.kind
+
+    def Cos(self, expr, *subx):
+        lookup = {(Unknown): Unknown,
+                  (Scalar): Scalar,
+                  (Vector): Unknown)}
+        expr.kind = lookup[subx]
+        return expr.kind
+
+    def Exp(self, expr, *subx):
+        lookup = {(Unknown): Unknown,
+                  (Scalar): Scalar,
+                  (Vector): Unknown)}
+        expr.kind = lookup[subx]
+        return expr.kind
+
+    def Ln(self, expr, *subx):
+        lookup = {(Unknown): Unknown,
+                  (Scalar): Scalar,
+                  (Vector): Unknown)}
+        expr.kind = lookup[subx]
+        return expr.kind

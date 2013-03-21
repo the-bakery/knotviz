@@ -9,6 +9,13 @@ Scalar = 1
 Vector = 2
 
 
+class Function(object):
+
+    def __init__(self, syms, expr):
+        self.syms = syms
+        self.expr = expr
+
+
 class Expr(Tree):
 
     def __init__(self, *subx):
@@ -40,6 +47,14 @@ def dot(a, b):
 
 def cross(a, b):
     return Cross(a, b)
+
+
+def length(v):
+    return Sqrt()
+
+
+def normalize(v):
+    return v / Sqrt(v**2)
 
 
 class Atom(Expr):
@@ -96,13 +111,6 @@ class Compound(Expr):
 
     def __init__(self, *args):
         super(Compound, self).__init__(*args)
-
-
-class Lambda(Compound):
-
-    def __init__(self, syms, *args):
-        super(Lambda, self).__init__(*args)
-        self.syms = syms
 
 
 class Vec3(Compound):
@@ -172,3 +180,27 @@ class Div(Compound):
 
     def __init__(self, x, y):
         super(Div, self).__init__(x, y)
+
+
+class Sin(Compound):
+
+    def __init__(self, x):
+        super(Sin, self).__init__(x)
+
+
+class Cos(Compound):
+
+    def __init__(self, x):
+        super(Cos, self).__init__(x)
+
+
+class Exp(Compound):
+
+    def __init__(self, x):
+        super(Exp, self).__init__(x)
+
+
+class Log(Compound):
+
+    def __init__(self, x):
+        super(Log, self).__init__(x)
